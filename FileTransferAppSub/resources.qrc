@@ -1,0 +1,10 @@
+<RCC>
+    <qresource>
+        <file>qml/App.qml</file>
+        <file>qml/Screen01.qml</file>
+        <file>qml/Main.qml</file>
+        <file>qml/EventListModel.qml</file>
+        <file>qml/EventListSimulator.qml</file>
+        <file>qml/Constants.qml</file>
+    </qresource>
+</RCC>

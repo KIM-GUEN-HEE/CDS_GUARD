@@ -1,0 +1,11 @@
+<RCC>
+  <qresource>
+    <file>icons/caret-down.svg</file>
+    <file>icons/search-normal.svg</file>
+    <file>icons/search-hover.svg</file>
+    <file>icons/check-box-blank.svg</file>
+    <file>icons/check-box-checked.svg</file>
+    <file>icons/refresh.svg</file>
+    <file>icons/refresh-hover.svg</file>
+  </qresource>
+</RCC>

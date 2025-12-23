@@ -1,0 +1,11 @@
+*
+!*/
+!*.*
+**/.vscode/
+**/.vscode/*
+**/.qtcreator/
+**/.qtcreator/*
+**/build
+**/original
+**/.DS_Store
+**/.idea
