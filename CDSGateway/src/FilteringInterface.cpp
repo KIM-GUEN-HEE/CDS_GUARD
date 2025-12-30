@@ -228,29 +228,64 @@ std::string_view FilteringInterface::cds_regex_enum_to_string(CdsRegex _enum_val
 
 std::future<size_t> FilteringInterface::enqueue_censor_document_file(std::span<std::uint8_t> _input_zip_file_buffer)
 {
-    return std::async(std::launch::async, [this, _input_zip_file_buffer]() -> size_t 
-    {
+    // return std::async(std::launch::async, [this, _input_zip_file_buffer]() -> size_t 
+    // {
 
-        // 1. ZIP을 열고 XML 파일과 이미지 파일을 추출
-        MzMemStreamRAII mem_stream;
-        mem_stream.set_buffer(_input_zip_file_buffer);
-        mem_stream.open(MZ_OPEN_MODE_READWRITE);
-        if (mem_stream.error_occured())
-        {
-            std::cerr << std::format("mz_stream_open (read) error : {}", mem_stream.get_last_error()) << std::endl;
-            return 0;
-        }
+    //     // 1. ZIP을 열고 XML 파일과 이미지 파일을 추출
+    //     MzMemStreamRAII mem_stream;
+    //     mem_stream.set_buffer(_input_zip_file_buffer);
+    //     mem_stream.open(MZ_OPEN_MODE_READWRITE);
+    //     if (mem_stream.error_occured())
+    //     {
+    //         std::cerr << std::format("mz_stream_open (read) error : {}", mem_stream.get_last_error()) << std::endl;
+    //         return 0;
+    //     }
         
-        std::expected<ParseZip::RawExtractedDocContent, ParseZip::ExtractErrorInfo> expected_raw_doc_content = ParseZip::extract_doc_content(mem_stream);
+    //     std::expected<ParseZip::RawExtractedDocContent, ParseZip::ExtractErrorInfo> expected_raw_doc_content = ParseZip::extract_doc_content(mem_stream);
 
-        if (!expected_raw_doc_content.has_value())
+    //     if (!expected_raw_doc_content.has_value())
+    //     {
+    //         // 에러 발생 시 로그를 남기고 함수를 안전하게 종료합니다. [2]
+    //         std::cerr << std::format("ParseZip::extract_doc_content error: {}",
+    //                                  static_cast<int>(expected_raw_doc_content.error().code))
+    //                   << std::endl;
+    //         return 0;
+    //     }
+
+
+    return std::async(std::launch::async, [this, _input_zip_file_buffer]() -> size_t 
+{
+    MzMemStreamRAII mem_stream;
+    mem_stream.set_buffer(_input_zip_file_buffer);
+    mem_stream.open(MZ_OPEN_MODE_READWRITE);
+
+    // 1. ZIP 파싱 시도
+    auto expected_raw_doc_content = ParseZip::extract_doc_content(mem_stream);
+
+    // 2. 파싱 에러 발생 시 처리 로직
+    if (!expected_raw_doc_content.has_value()) 
+    {
+        // 에러 원인이 'ZIP/문서 형식이 아님'인 경우 (예: .txt 파일)
+        if (expected_raw_doc_content.error().code == ParseZip::ExtractError::UnsupportedDocumentType)
         {
-            // 에러 발생 시 로그를 남기고 함수를 안전하게 종료합니다. [2]
-            std::cerr << std::format("ParseZip::extract_doc_content error: {}",
-                                     static_cast<int>(expected_raw_doc_content.error().code))
-                      << std::endl;
-            return 0;
+            // [해결 방안] 파일 버퍼 전체를 일반 텍스트(string)로 보고 검열을 수행합니다.
+            std::span<char> text_span{ 
+                reinterpret_cast<char*>(const_cast<uint8_t*>(_input_zip_file_buffer.data())), 
+                _input_zip_file_buffer.size() 
+            };
+            
+            // 일반 문자열 검열 큐에 삽입하고 완료될 때까지 기다립니다.
+            auto future = enqueue_censor_string(text_span);
+            future.wait(); 
+
+            // 검열이 완료된 후, 파일 형태를 유지하기 위해 원본 크기를 반환합니다.
+            return _input_zip_file_buffer.size();
         }
+
+        // 그 외의 치명적 에러(파일 손상, 용량 초과 등)는 기존처럼 0을 반환합니다.
+        std::cerr << std::format("ParseZip error: {}", static_cast<int>(expected_raw_doc_content.error().code)) << std::endl;
+        return 0;
+    }
 
         ParseZip::RawExtractedDocContent raw_doc_content = std::move(expected_raw_doc_content.value());
 
