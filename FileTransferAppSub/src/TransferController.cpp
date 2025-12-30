@@ -47,13 +47,48 @@ void TransferController::sendData(const QString& ip, quint16 port, const QString
     controlSock.disconnectFromHost();
     emit logMessage(tr("Received dynamic port: %1").arg(cds_gateway_dynamic_port));
 
-    // 데이터 전송: 동적 포트에 새로 연결 후 전송
-    if (isText)
-        sendText(ip, port, cds_gateway_dynamic_port, payloadOrPath);   // 수정 필요
-    else
-        sendFile(ip, port, cds_gateway_dynamic_port, payloadOrPath);   // 수정 필요
+    // --- 방법 A 적용: .txt 확장자 자동 감지 및 TEXT 태그 전환 로직 ---
+    bool shouldSendAsText = isText;
+    QString finalContent = payloadOrPath;
 
-    emit logMessage(tr("sendData() → %1:%2 (%3)").arg(ip).arg(port).arg(isText ? "Text" : "File"));
+    // 파일 전송 모드(isText=false)이면서 확장자가 .txt인 경우 [5]
+    if (!isText && payloadOrPath.toLower().endsWith(".txt"))
+    {
+        QString localPath = QUrl(payloadOrPath).toLocalFile();
+        QFile file(localPath);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            // 파일의 내용을 읽어서 텍스트 전송 모드로 강제 전환
+            finalContent = QString::fromUtf8(file.readAll());
+            shouldSendAsText = true;
+            file.close();
+        }
+    }
+
+    // 최종 결정된 모드에 따라 전송 함수 호출 [5]
+    if (shouldSendAsText)
+    {
+        // "TEXT\0" 태그를 사용하여 전송 [2]
+        sendText(ip, port, cds_gateway_dynamic_port, finalContent);
+    }
+    else
+    {
+        // "FILE\0" 태그를 사용하여 전송 (ZIP 기반 문서들) [3]
+        sendFile(ip, port, cds_gateway_dynamic_port, payloadOrPath);
+    }
+
+    emit logMessage(tr("sendData() → %1:%2 (%3)")
+                        .arg(ip)
+                        .arg(port)
+                        .arg(shouldSendAsText ? "Text" : "File"));
+
+    // // 데이터 전송: 동적 포트에 새로 연결 후 전송
+    // if (isText)
+    //     sendText(ip, port, cds_gateway_dynamic_port, payloadOrPath);   // 수정 필요
+    // else
+    //     sendFile(ip, port, cds_gateway_dynamic_port, payloadOrPath);   // 수정 필요
+
+    // emit logMessage(tr("sendData() → %1:%2 (%3)").arg(ip).arg(port).arg(isText ? "Text" : "File"));
 }
 
 void TransferController::sendText(const QString& dest_ip, quint16 dest_port, quint16 cds_gateway_dynamic_port, const QString& txt)

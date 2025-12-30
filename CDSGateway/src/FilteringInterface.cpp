@@ -242,13 +242,23 @@ std::future<size_t> FilteringInterface::enqueue_censor_document_file(std::span<s
         }
         
         std::expected<ParseZip::RawExtractedDocContent, ParseZip::ExtractErrorInfo> expected_raw_doc_content = ParseZip::extract_doc_content(mem_stream);
-        ParseZip::RawExtractedDocContent raw_doc_content = std::move(expected_raw_doc_content.value());
 
         if (!expected_raw_doc_content.has_value())
         {
-            std::cerr << std::format("ParseZip::extract_doc_content error: {}", static_cast<int64_t>(expected_raw_doc_content.error().code)) << std::endl;
+            // 에러 발생 시 로그를 남기고 함수를 안전하게 종료합니다. [2]
+            std::cerr << std::format("ParseZip::extract_doc_content error: {}",
+                                     static_cast<int>(expected_raw_doc_content.error().code))
+                      << std::endl;
             return 0;
         }
+
+        ParseZip::RawExtractedDocContent raw_doc_content = std::move(expected_raw_doc_content.value());
+
+        // if (!expected_raw_doc_content.has_value())
+        // {
+        //     std::cerr << std::format("ParseZip::extract_doc_content error: {}", static_cast<int64_t>(expected_raw_doc_content.error().code)) << std::endl;
+        //     return 0;
+        // }
 
         MzZipRAII input_zip;
         input_zip.open(mem_stream, MZ_OPEN_MODE_READ);
