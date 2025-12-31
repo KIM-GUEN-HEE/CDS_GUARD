@@ -31,6 +31,7 @@ TransferController::TransferController(QObject* p) : QObject(p)
 
 void TransferController::sendData(const QString& ip, quint16 port, const QString& payloadOrPath, bool isText)
 {
+
     // 1차 접속: 제어 포트 (ex. 10090)
     QTcpSocket controlSock;
     controlSock.connectToHost(cds_gateway_ip_, cds_gateway_port_);
@@ -46,7 +47,6 @@ void TransferController::sendData(const QString& ip, quint16 port, const QString
     }
     controlSock.disconnectFromHost();
     emit logMessage(tr("Received dynamic port: %1").arg(cds_gateway_dynamic_port));
-    
 
     // 데이터 전송: 동적 포트에 새로 연결 후 전송
     if (isText)

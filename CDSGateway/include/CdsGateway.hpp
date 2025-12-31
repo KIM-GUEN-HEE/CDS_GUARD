@@ -58,6 +58,7 @@ inline void CdsGatewayDebugErrorLog(const std::source_location& loc, Args&&... a
 struct ReceivedPayload 
 {
     bool is_file;
+    bool is_txt_file;
     std::string file_name;
     std::vector<uint8_t> data;
     std::uint8_t src_ip_ver;

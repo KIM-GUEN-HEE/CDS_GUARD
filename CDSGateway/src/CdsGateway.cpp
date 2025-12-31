@@ -111,13 +111,28 @@ void FileSinkSession(asio::ip::tcp::socket sock)
 
         char tag[5];
         asio::read(sock, asio::buffer(tag, 5));
-        if (std::memcmp(tag, "FILE\0", 5) == 0) 
+        
+
+        if (std::memcmp(tag, "FILE\0", 5) == 0)
         {
             payload.is_file = true;
             uint32_t nameLen;
             asio::read(sock, asio::buffer(&nameLen, 4));
             payload.file_name.resize(nameLen);
             asio::read(sock, asio::buffer(payload.file_name.data(), nameLen));
+
+            // --- .txt 파일 판별 로직 추가 ---
+            auto pos = payload.file_name.rfind('.');
+            if (pos != std::string::npos)
+            {
+                std::string ext = payload.file_name.substr(pos);
+                // 대소문자 구분 없이 판별하려면 추가 처리가 필요할 수 있습니다.
+                if (ext == ".txt")
+                {
+                    payload.is_txt_file = true;
+                }
+            }
+            // ------------------------------
 
             uint64_t fileSize;
             asio::read(sock, asio::buffer(&fileSize, 8));
@@ -248,14 +263,40 @@ void CdsGatewayFilteringProcessingLoop(std::stop_token stoken, std::function<voi
             
             lock.unlock();
 
-            if (censor_task_list.back().is_file == true)
+            // if (censor_task_list.back().is_file == true)
+            // {
+            //     std::span<std::uint8_t> file_memory_buffer{censor_task_list.back().data.data(), censor_task_list.back().data.size()};
+            //     censor_future_result_list.push_back(filtering_interface.enqueue_censor_document_file(file_memory_buffer));
+            // }
+            // else if(censor_task_list.back().is_file == true && censor_task_list.back().is_txt_file == true)
+            // {
+            //     std::span<char> string_span{reinterpret_cast<char*>(censor_task_list.back().data.data()), censor_task_list.back().data.size()};
+            //     censor_future_result_list.push_back(filtering_interface.enqueue_censor_string(string_span));
+            // }
+            // else
+            // {
+            //     std::span<char> string_span{reinterpret_cast<char*>(censor_task_list.back().data.data()), censor_task_list.back().data.size()};
+            //     censor_future_result_list.push_back(filtering_interface.enqueue_censor_string(string_span));
+            // }
+
+
+            if (censor_task_list.back().is_txt_file == true) // .txt 파일인 경우 우선 처리
             {
-                std::span<std::uint8_t> file_memory_buffer{censor_task_list.back().data.data(), censor_task_list.back().data.size()};
+                // 내용은 텍스트로 검열하지만
+                std::span string_span{reinterpret_cast<char *>(censor_task_list.back().data.data()), censor_task_list.back().data.size()};
+                censor_future_result_list.push_back(filtering_interface.enqueue_censor_string(string_span));
+
+                // 이 시점에서 is_file은 반드시 true여야 합니다.
+                censor_task_list.back().is_file = true;
+            }
+            else if (censor_task_list.back().is_file == true) // 일반 문서 파일(.docx, .hwpx 등)
+            {
+                std::span file_memory_buffer{censor_task_list.back().data.data(), censor_task_list.back().data.size()};
                 censor_future_result_list.push_back(filtering_interface.enqueue_censor_document_file(file_memory_buffer));
             }
-            else
+            else // 순수 텍스트 메시지
             {
-                std::span<char> string_span{reinterpret_cast<char*>(censor_task_list.back().data.data()), censor_task_list.back().data.size()};
+                std::span string_span{reinterpret_cast<char *>(censor_task_list.back().data.data()), censor_task_list.back().data.size()};
                 censor_future_result_list.push_back(filtering_interface.enqueue_censor_string(string_span));
             }
 
