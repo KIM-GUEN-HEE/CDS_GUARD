@@ -1,7 +1,3 @@
 CDS_GUARD
 =========
-Cross Domain Solution
----------------------
-Overview
---------
-<img width="1191" height="628" alt="image" src="https://github.com/user-attachments/assets/955b648e-ecb6-46b2-910e-5bafac3a0a36" />
+https://www.notion.so/CDS-Cross-Domain-Solution-157b91b1c4bc8027bd4ed19af9fb2a8d
