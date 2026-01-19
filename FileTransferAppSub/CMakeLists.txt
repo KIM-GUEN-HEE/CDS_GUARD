@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
+#____________set qt path______________
+set(CMAKE_PREFIX_PATH "/opt/Qt/6.10.1/gcc_64")
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Network)
 
 include(FetchContent)
