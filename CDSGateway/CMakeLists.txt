@@ -27,7 +27,7 @@ file(GLOB_RECURSE PACKET_PROCESSOR_SOURCES CONFIGURE_DEPENDS
 list(REMOVE_ITEM PACKET_PROCESSOR_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../PacketProcessor/src/main.cpp")
 
 #____________set qt path______________
-set(CMAKE_PREFIX_PATH "/opt/Qt/6.10.1/gcc_64")
+set(CMAKE_PREFIX_PATH "/opt/Qt/6.10.2/gcc_64")
 
 # ───────────────── find_package ─────────────────
 find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
